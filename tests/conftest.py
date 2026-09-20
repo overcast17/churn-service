@@ -1,0 +1,32 @@
+import pytest
+from fastapi.testclient import TestClient
+
+from churn.service.app import app 
+
+
+@pytest.fixture(scope='session')
+def client():
+    with TestClient(app) as c:
+        yield c
+
+@pytest.fixture()
+def good_row():
+    return {
+        "credit_score": 619,
+        "geography": "France",
+        "gender": "Female",
+        "age": 42,
+        "tenure": 2,
+        "balance": 0.0,
+        "num_of_products": 1,
+        "has_cr_card": 1,
+        "is_active_member": 1,
+        "estimated_salary": 101348.88,
+        "satisfaction_score": 2,
+        "card_type": "DIAMOND",
+        "point_earned": 464
+}
+
+
+        
+    

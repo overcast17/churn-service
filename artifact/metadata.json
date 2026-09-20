@@ -1,0 +1,62 @@
+{
+  "model_name": "bank-churn-logreg",
+  "model_version": "1.0.0",
+  "trained_at": "2026-09-17T15:56:55+00:00",
+  "target": "exited",
+  "n_train": 8000,
+  "features": [
+    "credit_score",
+    "geography",
+    "gender",
+    "age",
+    "tenure",
+    "balance",
+    "num_of_products",
+    "has_cr_card",
+    "is_active_member",
+    "estimated_salary",
+    "satisfaction_score",
+    "card_type",
+    "point_earned"
+  ],
+  "numeric_cols": [
+    "credit_score",
+    "age",
+    "tenure",
+    "balance",
+    "num_of_products",
+    "has_cr_card",
+    "is_active_member",
+    "estimated_salary",
+    "satisfaction_score",
+    "point_earned"
+  ],
+  "categorical_cols": [
+    "geography",
+    "gender",
+    "card_type"
+  ],
+  "dropped_cols": [
+    "row_number",
+    "customer_id",
+    "surname",
+    "complain"
+  ],
+  "threshold": 0.1973,
+  "threshold_rule": "max threshold with recall >= 0.7 on train OOF",
+  "metrics_test": {
+    "ROC-AUC": 0.7784,
+    "PR-AUC": 0.4865,
+    "precision": 0.3794,
+    "recall": 0.7402,
+    "F1": 0.5017,
+    "threshold": 0.1973
+  },
+  "libs": {
+    "python": "3.12.7",
+    "pandas": "3.0.5",
+    "numpy": "2.5.3",
+    "scikit-learn": "1.9.1",
+    "joblib": "1.6.0"
+  }
+}
