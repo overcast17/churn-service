@@ -30,8 +30,7 @@ bash scripts/kind_up.sh
 2. **Compose.** Собирает образ, поднимает сервис и Postgres, дожидается готовности,
    делает предсказание и показывает строку в таблице логов.
 3. **Kubernetes.** Создаёт кластер kind (если его нет), собирает образ, загружает его в ноду,
-   создаёт секрет, применяет манифесты, дожидается выката и получает предсказание
-   через port-forward.
+   применяет манифесты, дожидается выката и получает предсказание через port-forward.
 
 Нужны: `uv`, `docker` (запущенный Docker Desktop), `kind`, `kubectl`.
 
@@ -129,9 +128,9 @@ bash scripts/kind_up.sh
 | `DATABASE_URL` | не задан | Строка подключения к PostgreSQL |
 | `LOG_LEVEL` | `INFO` | Уровень логирования |
 
-В Compose переменные заданы в `compose.yaml`. В Kubernetes несекретные лежат в
-`k8s/configmap.yaml`, пароль и строка подключения — в секрете `churn-secrets`,
-который создаётся командой из `scripts/kind_up.sh` и в репозиторий не коммитится.
+В Compose переменные заданы в `compose.yaml`, там же поднимается Postgres — логирование
+предсказаний проверяется именно там. В Kubernetes `DATABASE_URL` не задан: сервис работает
+и отдаёт предсказания, просто не пишет их в базу.
 
 ## Структура
 
@@ -144,7 +143,7 @@ src/churn/
   db.py            DDL и запись предсказаний
   service/app.py   FastAPI: схемы, lifespan, эндпоинты
 tests/             9 тестов: контракт, smoke, детерминизм
-k8s/               configmap, deployment, service, postgres
+k8s/               deployment.yaml, service.yaml
 scripts/           compose_up.sh, kind_up.sh
 Dockerfile         сборка на uv: слой зависимостей до слоя кода
 compose.yaml       сервис + Postgres с healthcheck

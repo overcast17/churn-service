@@ -137,6 +137,10 @@ Error: secret "churn-secrets" not found
 `kubectl create secret generic churn-secrets --from-literal=...` и в репозиторий не коммитится.
 Поды поднялись сами, без пересоздания.
 
+В итоговой версии ConfigMap и Secret из манифестов убраны вместе с `envFrom`: в кластере
+сервису хватает значений по умолчанию, а логирование в Postgres проверяется в Compose.
+Меньше движущихся частей — меньше способов сломаться у проверяющего.
+
 Попутный вывод: `Service` при этом существовал и имел IP, но `kubectl get endpoints churn-service`
 показывал `<none>` — трафик идёт только на поды в состоянии Ready. При отладке сервиса
 endpoints стоит смотреть первым делом.
