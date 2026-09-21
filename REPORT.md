@@ -35,7 +35,7 @@ docker compose exec -T db psql -U postgres -d churn -c "SELECT request_id, score
 kubectl get pods
 ```
 
-Две реплики сервиса и Postgres.
+Две реплики сервиса.
 
 ![kubectl get pods: три пода Running](images/pods.png)
 
