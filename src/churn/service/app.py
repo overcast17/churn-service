@@ -38,6 +38,17 @@ class Prediction(BaseModel):
     request_id: str
     latency_ms: float
 
+class BatchRequest(BaseModel):
+    model_config = {"extra":"forbid"}
+    rows: list[Features] = Field(min_length=1, max_length=1000)
+
+class BatchPrediction(BaseModel):
+    scores: list[float]
+    churn: list[bool]
+    model_version: str
+    request_id: str
+    latency_ms: float
+
 ## Загрузка модели 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -80,3 +91,26 @@ def predict(x: Features, bg: BackgroundTasks) -> Prediction:
     churn = score>= app.state.meta['threshold']
 
     return Prediction(score = score, churn = churn, model_version=app.state.version, request_id= request_id, latency_ms=latency_ms )
+
+@app.post("/v1/predict/batch")
+def predict_batch(req: BatchRequest) -> BatchPrediction:
+    t0 = time.perf_counter()
+    request_id = str(uuid.uuid4())
+
+    frame = pd.DataFrame([r.model_dump() for r in req.rows]).reindex(columns=app.state.meta["features"])
+
+    scores = [float(s) for s in app.state.pipeline.predict_proba(frame)[:, 1]]
+
+    latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+
+    threshold = app.state.meta["threshold"]
+    churn = [s >= threshold for s in scores]
+
+    return BatchPrediction(
+        scores=scores,
+        churn=churn,
+        model_version=app.state.version,
+        request_id=request_id,
+        n_rows=len(scores),
+        latency_ms=latency_ms,
+    )
