@@ -16,21 +16,20 @@ uv sync && uv run pytest
 ```
 
 ```bash
-bash scripts/compose_up.sh
+docker compose up -d --build
 ```
 
 ```bash
-bash scripts/kind_up.sh
+kind create cluster --name mlpro && docker build -t churn-service:1.0 . && kind load docker-image churn-service:1.0 --name mlpro && kubectl apply -f k8s/ && kubectl rollout status deploy/churn-service
 ```
 
 Что делает каждая:
 
 1. **Тесты.** `uv sync` поднимает окружение по `uv.lock` (Python 3.11 из `.python-version`),
    `pytest` прогоняет 9 тестов.
-2. **Compose.** Собирает образ, поднимает сервис и Postgres, дожидается готовности,
-   делает предсказание и показывает строку в таблице логов.
-3. **Kubernetes.** Создаёт кластер kind (если его нет), собирает образ, загружает его в ноду,
-   применяет манифесты, дожидается выката и получает предсказание через port-forward.
+2. **Compose.** Собирает образ и поднимает сервис вместе с Postgres на `localhost:8000`.
+3. **Kubernetes.** Создаёт кластер kind `mlpro`, собирает образ, загружает его в ноду,
+   применяет манифесты и дожидается выката.
 
 Нужны: `uv`, `docker` (запущенный Docker Desktop), `kind`, `kubectl`.
 
@@ -85,7 +84,7 @@ bash scripts/kind_up.sh
 }
 ```
 
-Этот же пример лежит в `valid.json` — им пользуются скрипты проверки.
+Этот же пример лежит в `valid.json`.
 
 ### Ответ
 
@@ -144,12 +143,17 @@ src/churn/
   service/app.py   FastAPI: схемы, lifespan, эндпоинты
 tests/             9 тестов: контракт, smoke, детерминизм
 k8s/               deployment.yaml, service.yaml
-scripts/           compose_up.sh, kind_up.sh
 Dockerfile         сборка на uv: слой зависимостей до слоя кода
 compose.yaml       сервис + Postgres с healthcheck
 ```
 
 ## Ручные команды
+
+Предсказание в Compose (в kind — после `kubectl port-forward svc/churn-service 8080:80` на порту 8080):
+
+```bash
+curl -s -X POST http://localhost:8000/v1/predict -H "Content-Type: application/json" -d @valid.json
+```
 
 Локальный запуск без контейнеров:
 
