@@ -7,3 +7,4 @@ __pycache__/
 .env
 k8s/secret.yaml
 check_env_report.txt
+loadtest/
