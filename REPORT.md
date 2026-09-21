@@ -97,8 +97,42 @@ uv run locust -f locustfile.py --headless -u 100 -r 20 -t 60s --csv loadtest/run
 
 **Вывод.** 500 строк дороже одной всего в 1.6 раза (7.4 против 4.7 мс): около 0.015 мс на строку против 4.7 мс
 на одиночный запрос. Почти всё время уходит на фиксированные накладные расходы — построение DataFrame, `reindex`,
-проход по шагам Pipeline, вызовы pandas и sklearn. Сами препроцессинг и логистическая регрессия векторизованы:
-для 500 строк это одно матричное умножение, которое стоит почти столько же, сколько для одной.
+проход по шагам Pipeline, вызовы pandas и sklearn.
+## Выкат новой версии и откат
+
+Образ `churn-service:1.1` отличается от 1.0 батч-эндпоинтом `/v1/predict/batch`.
+
+```bash
+docker build -t churn-service:1.1 .
+kind load docker-image churn-service:1.1 --name mlpro
+kubectl set image deploy/churn-service api=churn-service:1.1
+kubectl rollout status deploy/churn-service
+kubectl rollout undo deploy/churn-service
+kubectl rollout history deploy/churn-service
+```
+
+Выкат 1.0 → 1.1: старые и новые поды работают одновременно.
+
+![Выкат: поды 1.0 и 1.1 одновременно](images/new_pods.png)
+
+После выката — два пода 1.1:
+
+![xray после выката](images/xray-deployment.png)
+
+Откат 1.1 → 1.0: новый под 1.0 ещё не готов, оба пода 1.1 продолжают отвечать.
+
+![xray во время отката](images/rollout-xray-deploy.png)
+
+![rollout history](images/rollout_history.png)
+
+Ревизия 4 — образ 1.1, ревизия 5 — 1.0, вернувшаяся откатом. Откат не восстанавливает старый номер
+ревизии, а создаёт новую с шаблоном предыдущей, поэтому ревизия 3 из истории пропала.
+
+**Вывод.** Во время выката поды менялись по одному сначала поднимался под с новым образом, и только после
+того как он проходил readiness-пробу `/ready`, Kubernetes завершал один старый. Откат вернул образ 1.0
+без батч-эндпоинта — `/v1/predict/batch` исчез из `/docs`. Сервис не молчал, потому что стратегия
+`RollingUpdate` держит работающие поды до готовности новых, а Service направляет трафик только на поды
+в состоянии Ready.
 
 ## Журнал проблем
 
