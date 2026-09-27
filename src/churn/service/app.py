@@ -89,7 +89,7 @@ async def log_invalid_request(request: Request, exc: RequestValidationError):
 
 @app.get("/health")
 def health():
-    return {"status":"ok", "model_version": getattr(app.state, "version", "unknown")}
+    return {"status":"ok", "model_version": getattr(app.state, "version", "unknown"), "model_path": settings.model_path, "log_level":settings.log_level}
 
 
 @app.get("/ready")
