@@ -39,53 +39,38 @@ curl --fail -s -X POST localhost:8080/v1/predict -H "Content-Type: application/j
 | `secretKeyRef: {name: tun-tun-tun}` | deploy / база | `CreateContainerConfigError` | логов нет, в events `secret "tun-tun-tun" not found` |
 | `memory: 10000000000000000000000000000000Mi` | deploy / сервис | `Pending` | логов нет, в events `Insufficient memory` |
 
-**Конфиг.** Контейнер стартует и падает сам, в логах трейсбек — значит, окружение на месте, а сломано то,
-что читает приложение.
+**Конфиг.** Контейнер стартует и падает сам, значит, окружение на месте, а сломано то, что читает приложение.
 
 **Секрет.** Сломал `secretKeyRef` у Postgres, а не `secretRef` сервиса, поэтому упал шаг «база».
-Логов нет, потому что контейнер не создавался, — причина видна только в events.
 
 **Ресурсы.** Под не назначен на узел (NODE пустой), в events `FailedScheduling`. Поднимать пришлось и
 `limits`: при `requests > limits` манифест не проходит валидацию.
 
-## Семь вопросов
+## Вопросы
 
 **1.** Build шёл **71 с** в [первом прогоне](https://github.com/overcast17/churn-service/actions/runs/36317676278)
-и **33 с** во [втором](https://github.com/overcast17/churn-service/actions/runs/36320723071). Из кэша взят слой
-`uv sync --no-install-project` — установка зависимостей. Он зависит только от `pyproject.toml` и `uv.lock`,
-которые не менялись; изменился `src/`, и пересобралось всё начиная с `COPY src/`.
+и **33 с** во [втором](https://github.com/overcast17/churn-service/actions/runs/36320723071). Полагаю, что в 1 прогоне устанавливались зависимости и окружение, а в дальнейших нет: `uv sync --frozen --no-dev --no-install-project`.
 
-**2.** `kubectl apply` создаёт Deployment с образом из манифеста `churn-service:1.0`, которого в kind нет, —
-это и есть поды в ImagePullBackOff. Следом `kubectl set image` ставит образ из GHCR, и `rollout status` ждёт
-уже новую ревизию. Старые поды удаляются, так что прогон зелёный.
+**2.** `kubectl apply` создаёт Deployment с образом из манифеста `churn-service:1.0`, которого в kind нет, это и есть  
+поды в ImagePullBackOff. Следом `kubectl set image` ставит образ из GHCR, а старые поды удаляются.
 
-**3.** GitHub Secret `DB_PASSWORD` → `${{ secrets.DB_PASSWORD }}` в env шага → `kubectl create secret` →
-Secret `churn-secrets` в кластере → `envFrom: secretRef` в поде. В `configmap.yaml` нельзя: репозиторий
-публичный, и пароль навсегда остался бы в истории git.
+**3.** Создаём секрет `DB_PASSWORD` в настройках GitHub -> в job deploy он попадает в переменную шага через `${{ secrets.DB_PASSWORD }}` (в логах скрыт как `***`) -> `kubectl create secret` кладёт его в Secret `churn-secrets` в кластере -> Deployment через `envFrom: secretRef` превращает его в переменные окружения пода. В configmap нельзя, так как репозиторий публичный и пароль остался бы в истории git.
 
-**4.** Build пойдёт параллельно с тестами. Коммит ломает логирование 422, тест красный, но образ уже в GHCR,
-и deploy выкатывает его в кластер — сломанная версия работает, хотя тесты её не пропустили.
+**4.** Мы параллельно запускаем tests и build, и может пройти на кластер то, что не работает, так как тест не проверил бы build.
 
-**5.** Строка `if: github.ref == 'refs/heads/main'` у build; deploy пропускается следом через `needs: build`.
-Так в реестр попадают только образы из main после ревью, а PR получает быструю проверку тестами.
+**5.** Строка `if: github.ref == 'refs/heads/main'` у build, а для deploy пропускается через `needs: build`.
+PR получает быструю проверку, потому что прогонять каждый раз build и deploy на PR было бы затратно по времени. 
 
-**6.** Реплики — это два пода сервиса (`replicas: 2`). Оба при старте вызывают `CREATE TABLE IF NOT EXISTS`,
-и на пустой базе один из них может упасть с `duplicate key ... pg_type_typname_nsp_index`: `IF NOT EXISTS`
-от гонки не защищает. Лок ставит их в очередь, второй видит уже готовую таблицу.
+**6.** 2 реплики — это 2 пода сервиса (`replicas: 2`), а не реплики базы. При старте оба вызывают `init()` с `CREATE TABLE IF NOT EXISTS`, и на пустой базе оба могут решить, что таблицы нет. `IF NOT EXISTS` от такой гонки не защищает: второй под падает с ошибкой `duplicate key` и уходит в перезапуск. Лок ставит их в очередь: второй под ждёт, пока первый создаст таблицу, и видит её уже готовой.
 
-**7.** `Pending` → `CreateContainerConfigError` → `CrashLoopBackOff`. Pending — scheduler не нашёл узел
-с такой памятью. CreateContainerConfigError — под на узле, но kubelet не может собрать env из секрета.
-CrashLoopBackOff — контейнер запустился, упало само приложение.
+**7.**
 
-## Замечания по домашке 1
+1. Pending
+2. CreateContainerConfigError
+3. CrashLoopBackOff
 
-| Замечание | Коммит |
-|---|---|
-| 422 не логируются в `status_code` | [7e52269](https://github.com/overcast17/churn-service/commit/7e52269), тест [9e1ca93](https://github.com/overcast17/churn-service/commit/9e1ca93) |
-| ноутбук сохраняет модель не в `artifact/` | [3ae97c2](https://github.com/overcast17/churn-service/commit/3ae97c2) |
-| нет `.dockerignore` | [84de75c](https://github.com/overcast17/churn-service/commit/84de75c) |
-| тест про батч без батча | [ade050b](https://github.com/overcast17/churn-service/commit/ade050b) |
-| `uv:latest`, подпись «три пода» | не исправлено |
+Pending: scheduler не нашёл узел с такой памятью. CreateContainerConfigError: под на узле, но kubelet не может собрать env из секрета.
+CrashLoopBackOff: контейнер запустился, упало само приложение.
 
 ## Журнал проблем
 
@@ -95,13 +80,6 @@ CrashLoopBackOff — контейнер запустился, упало сам�
 
 1. `docker create ... --health-intreval 5s --health-timeoust 3s` → exit code 125 на *Initialize containers*. Опечатки в health-флагах Postgres, `POSTGRES_DB:churn` без пробела, `DATABASE_URL` без `postgresql://`. → [bd264a3](https://github.com/overcast17/churn-service/commit/bd264a3).
 2. `Unable to resolve action docker/login-acrion` → build упал на *Set up job*. PR слит раньше, чем запушено исправление. → [ab4371d](https://github.com/overcast17/churn-service/commit/ab4371d) через PR #2.
-3. Интеграционный тест зелёный, но на деле пропускался: в CI не было `DATABASE_URL`, срабатывал `skipif`. → Postgres в `services:` job tests.
-4. Коммит починки `99ebc87` без своего прогона: запушен одним push вместе со следующим, а GitHub запускает workflow только для последнего.
-
-### Локально
-
-5. `KeyError: 'Contract'` — интеграционный тест скопирован с семинара с чужим датасетом. → Проверка по `geography`.
-6. `NotNullViolation: null value in column "score"` после снятия `NOT NULL`: `CREATE TABLE IF NOT EXISTS` не меняет существующую таблицу. → `DROP TABLE predictions`.
 
 Общая проблема — опечатки в YAML и именах. Самые неприятные не падали сразу: YAML принял `KEY:value`
 без пробела, pytest молча пропустил тест, `IF NOT EXISTS` молча оставил старую схему.
