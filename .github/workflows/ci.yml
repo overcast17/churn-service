@@ -10,14 +10,14 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: {POSTGRES_PASSWORD: test, POSTGRES_DB:churn}
+        env: {POSTGRES_PASSWORD: test, POSTGRES_DB: churn}
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres"
-          --health-intreval 5s --health-timeoust 3s --health-retries 10
+          --health-interval 5s --health-timeout 3s --health-retries 10
 
     env: 
-      DATABASE_URL: postgres:test@localhost:5432/churn
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/churn
 
     steps:
       - uses: actions/checkout@v7
