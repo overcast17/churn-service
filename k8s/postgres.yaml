@@ -22,7 +22,7 @@ spec:
               value: churn
             - name: POSTGRES_PASSWORD
               valueFrom:
-                secretKeyRef: {name: tun-tun-tun, key: POSTGRES_PASSWORD}
+                secretKeyRef: {name: churn-secrets, key: POSTGRES_PASSWORD}
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres"]
