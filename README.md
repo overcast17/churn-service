@@ -103,6 +103,7 @@ k8s/               deployment.yaml, service.yaml
 Dockerfile         сборка на uv: слой зависимостей до слоя кода
 compose.yaml       сервис + Postgres с healthcheck
 ```
-## Отчёт
+## Отчёты
 
-Скриншоты чекпоинтов и журнал проблем — в [REPORT.md](REPORT.md).
+- [Домашнее задание 1 — от артефакта до кластера](reports/REPORT_1.md)
+- [Домашнее задание 2 — CI/CD пайплайн](reports/REPORT_2.md)
