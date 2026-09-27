@@ -11,4 +11,4 @@ locustfile.py
 notebooks/
 images/
 loadtest/
-*.md
+reports/
