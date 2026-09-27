@@ -12,3 +12,4 @@ notebooks/
 images/
 loadtest/
 reports/
+*.md
