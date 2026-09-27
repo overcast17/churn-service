@@ -26,3 +26,22 @@ def test_prediction_is_logged(client, good_row):
     assert row[1] == pytest.approx(body["score"])
     assert row[2] == good_row["geography"]
     assert row[3] == 200
+
+
+def test_invalid_request_is_422(client, good_row):
+    r = client.post("/v1/predict", json={**good_row, "tenure": -1})
+    assert r.status_code == 422
+    request_id = r.json()["request_id"]
+
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute(
+            "SELECT status_code, score, features->>'tenure' "
+            "FROM predictions WHERE request_id = %s",
+            (request_id,),
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] == 422      
+    assert row[1] is None     
+    assert row[2] == "-1"     
+
