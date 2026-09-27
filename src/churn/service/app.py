@@ -1,17 +1,16 @@
-import time 
+import time
 import uuid
+from contextlib import asynccontextmanager
 from typing import Literal
 
-from contextlib import asynccontextmanager
-
-import joblib 
-import pandas as pd 
+import joblib
+import pandas as pd
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-
 from pydantic import BaseModel, Field
 
-from churn import db 
+from churn import db
 from churn.config import settings
+
 
 class Features(BaseModel):
     model_config = {"extra": "forbid"}

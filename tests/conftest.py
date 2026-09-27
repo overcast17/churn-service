@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from churn.service.app import app 
+from churn.service.app import app
 
 
 @pytest.fixture(scope='session')
