@@ -1,7 +1,13 @@
+from churn.config import settings
+
+
 def test_health(client):
     r = client.get("/health")
-    assert r.status_code == 200 
-    assert "model_version" in r.json()
+    assert r.status_code == 200
+    body = r.json()
+    assert "model_version" in body
+    assert body["model_path"] == settings.model_path
+    assert body["log_level"] == settings.log_level
 
 
 def test_ready(client):

@@ -5,8 +5,12 @@ from typing import Literal
 
 import joblib
 import pandas as pd
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTask
 
 from churn import db
 from churn.config import settings
@@ -63,9 +67,34 @@ async def lifespan(app: FastAPI):
 ## Сам сервис 
 app = FastAPI(title= "churn_service", version = "1.0", lifespan=lifespan)
 
+@app.exception_handler(RequestValidationError)
+async def log_invalid_request(request: Request, exc: RequestValidationError):
+    request_id = str(uuid.uuid4())
+    body = exc.body if isinstance(exc.body, dict) else {"raw": str(exc.body)}
+
+    task = BackgroundTask(
+        db.save_prediction,
+        request_id,
+        body,                                     
+        None,                                     
+        getattr(app.state, "version", "unknown"),
+        None,                                    
+        422,
+    )
+    return JSONResponse(
+        status_code=422,
+        content={"detail": jsonable_encoder(exc.errors()), "request_id": request_id},
+        background=task,
+    )
+
 @app.get("/health")
 def health():
-    return {"status":"ok", "model_version": getattr(app.state, "version", "unknown")}
+    return {
+        "status": "ok",
+        "model_version": getattr(app.state, "version", "unknown"),
+        "model_path": settings.model_path,
+        "log_level": settings.log_level,
+    }
 
 
 @app.get("/ready")

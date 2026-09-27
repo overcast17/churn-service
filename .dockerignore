@@ -8,3 +8,7 @@ data/
 k8s/
 tests/
 locustfile.py
+notebooks/
+images/
+loadtest/
+*.md
