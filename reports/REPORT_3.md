@@ -58,4 +58,34 @@ $ curl http://churn.localhost/health
 
 Задание 2.4
 
+Ссылка на зеленый прогон:
+https://github.com/overcast17/churn-service/actions/runs/37218649782/job/111484468363
 
+
+Скрин Runners:
+![alt text](../images/runners.png)
+
+
+Скрин из deploy, где видно runner: 
+![alt text](../images/deploy_runner.png)
+
+
+Задание 2.5 
+
+
+dvc push:
+Collecting                                              |1.00 [00:00,  312entry/s]
+Pushing
+Everything is up to date.
+(churn-service) 
+![alt text](../images/mlflow_different_md5.png)
+
+
+dvc pull:
+Collecting                                              |1.00 [00:00,  323entry/s]
+Fetching
+Building workspace index                                |1.00 [00:00, 73.5entry/s]
+Comparing indexes                                      |3.00 [00:00, 1.15kentry/s]
+Applying changes                                        |1.00 [00:00,  74.1file/s]
+A       data\Customer-Churn-Records.csv
+1 file fetched and 1 file added
