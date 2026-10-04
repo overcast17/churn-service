@@ -5,3 +5,6 @@ metadata:
 data:
   LOG_LEVEL: "INFO"
   MODEL_PATH: artifact/model.joblib
+  MODEL_NAME: bank-churn
+  MODEL_ALIAS: champion
+  MLFLOW_TRACKING_URI: http://mlflow.mlops:5000
