@@ -109,6 +109,8 @@ jobs:
           # модель пришла из реестра
           jq -e '.model_source | startswith("registry:")' health.json
 
+          sleep 5  # Traefik обновляет список подов с задержкой после выката
+
           curl --fail -s -X POST -H "$H" $U/v1/predict \
             -H "Content-Type: application/json" -d @valid.json | tee pred.json; echo
 
