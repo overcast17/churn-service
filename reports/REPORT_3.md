@@ -208,9 +208,9 @@ Test и Build нужен только код, а он доступен в GitHub
 
 2. Зачем runner запущен с ‐‐network kind, сокетом Docker и ‐‐group‐add 0? Что ломается безкаждого из трёх?
 
-1) ‐‐network kind, чтобы находился в одной сети с нодой кластера. 
-2)сокетом Docker, чтобы раннер мог управлять докером.
-3)‐‐group‐add 0, чтобы у раннера были права на чтение и запись в сокет. 
+* ‐‐network kind, чтобы находился в одной сети с нодой кластера. 
+* сокетом Docker, чтобы раннер мог управлять докером.
+* ‐‐group‐add 0, чтобы у раннера были права на чтение и запись в сокет. 
 
 
 3. Почему create secret заменили на ‐‐dry‐run=client ‐o yaml | kubectl apply? Что будет при втором деплое без этой замены?
@@ -225,11 +225,7 @@ Champion - версия моедли, которая сейчас работае
 
 5. Что будет, если задеплоить сервис в кластер, где никто ещё не обучил модель? Как это увидеть в k9s и в логе CI?
 
-Сервис на старте спрашивает у реестра `bank-churn@champion`, а модели в реестре нет — приложение падает при запуске,
-под уходит в `CrashLoopBackOff`. Это то же самое, что поломка 1 из 2.7, только там не было алиаса, а здесь нет всей модели.
-В k9s в `:pods` под красный, растёт RESTARTS, в логах (`l`, потом `p` для прошлого запуска) трейсбек MLflow, что модель
-не найдена. В CI падает шаг «сервис» по таймауту на `1 out of 2 new replicas`, а в диагностике тот же `CrashLoopBackOff` и трейсбек.
-Лечится одним: обучить модель до первого деплоя.
+Сервис упадет без модели, потому что он спрашивает у реестра alias, а там его нет. В k9s под красный и количество Restarts растет. В CI падает "сервис" по таймауту и появляется ошибка "CrashLoopBackOff"
 
 
 6. Проследите запрос от браузера до пода MLflow: какие порты и какие компоненты он про‐
@@ -263,44 +259,26 @@ MLflow блокирует их как чужие (`Blocked cross-origin`, в UI 
 - 60 пользователей: 2 пода при 119% → ceil(3.97) = 4, поставил 4; потом при 236% → 16, но упёрся в `maxReplicas: 6`.
 - 40 пользователей: 2 пода при 79% → ceil(2.63) = 3, поставил 3; потом при 171% → 9, ограничено 6.
 
-Всё совпало. Вниз дольше, потому что у HPA окно стабилизации на уменьшение 5 минут: он берёт самую большую
-рекомендацию за последние 5 минут, чтобы не дёргать реплики на каждом провале нагрузки. У меня нагрузка
-закончилась на 35-й минуте, а реплики упали на 40-й. Вверх окна нет, поэтому HPA реагировал за 15–30 секунд.
-
+Вниз дольше, потому что у HPA окно стабилизации на уменьшение 5 минут.
 
 8. Что лежит в git, а что в хранилище DVC? По шагам: как восстановить ровно те данные, на которых обучена версия N вашей модели в реестре?
 
-В git лежит маленький файл `data/Customer-Churn-Records.csv.dvc` с md5 и размером, `.dvc/config` с адресом
-хранилища и `data/.gitignore`, чтобы CSV не попал в git. Сам CSV лежит в хранилище DVC (`../dvc-storage`), имя файла там — его md5.
+В git лежит файл в формате csv.dvc который супер легкий, а в хранилище DVC непосредвенно сам файл .csv. 
+Чтобы восстановить данные, нужно узнать md5 значение того датасета, на котором была обучена модель и с помощью команды dvc pull по данному хешу мы сможем получить ихсодные данные на которых и обучалась выбранная модель.
 
-Как восстановить данные версии N:
-1. В MLflow открыть версию N в реестре → её прогон → параметр `data_md5` (у v3 это `e37acb17…`).
-2. Найти коммит, где в `.dvc` такой же md5: `git log -p -- data/Customer-Churn-Records.csv.dvc`.
-3. `git checkout <коммит> -- data/Customer-Churn-Records.csv.dvc`
-4. `uv run dvc checkout` (если в кэше нет — `uv run dvc pull`).
-5. Проверить: `md5sum data/Customer-Churn-Records.csv` совпадает с `data_md5` прогона.
 
 ## Журнал проблем
 
 (что не завелось с первого раза: текст ошибки → как починили)
 
 ### Кластер и MLflow
-
-1. MLflow не открывался, хотя Ingress был создан и колонка ADDRESS пустая. → `helm list -A` пустой: Traefik не установился, Ingress некому обслуживать. Поставил Traefik заново.
-2. `kind load docker-image ghcr.io/mlflow/mlflow:v3.16.1` → `ctr: content digest sha256:... not found`. Образ мультиплатформенный, Docker Desktop хранит слои только своей платформы, а kind грузит все. → Не стал грузить, нода скачала образ сама.
-3. `train.py` висел без вывода. → Python на Windows не резолвит `mlflow.localhost` (`getaddrinfo failed`), браузер и curl делают это сами, а клиент MLflow молча ретраит. Дописал `127.0.0.1 mlflow.localhost churn.localhost` в `hosts`.
-4. `docker run` runner'а из Git Bash → `mkdir C:\Program Files\Git\var: Access is denied`. Git Bash переписал путь к сокету. → `MSYS_NO_PATHCONV=1` перед командой. Плюс опечатка `--url $ REPO_URL` с пробелом.
+1. `train.py` висел без вывода. → Python на Windows не резолвит `mlflow.localhost` (`getaddrinfo failed`), браузер и curl делают это сами, а клиент MLflow молча ретраит. Дописал `127.0.0.1 mlflow.localhost churn.localhost` в `hosts`.
+2. `docker run` runner'а из Git Bash → `mkdir C:\Program Files\Git\var: Access is denied`. Git Bash переписал путь к сокету. → `MSYS_NO_PATHCONV=1` перед командой. Плюс опечатка `--url $ REPO_URL` с пробелом.
 
 ### CI
-
-1. Установка kubectl в runner качалась с `dl.k8s.io` ~65 КБ/с, не влезала в `timeout-minutes: 10` → [отменён](https://github.com/overcast17/churn-service/actions/runs/37216108003), в перезапуске `curl: (56) Failure when receiving data from the peer` ([попытка 1](https://github.com/overcast17/churn-service/actions/runs/37216584401/attempts/1)). → Скопировал kubectl v1.37.0 из ноды kind через `docker cp`.
-2. `chmod: changing permissions of '/home/runner/.local/bin/kubectl': Operation not permitted` ([попытка 2](https://github.com/overcast17/churn-service/actions/runs/37216584401/attempts/2)) → после `docker cp` файл принадлежал root. → `chown runner:runner`.
-3. Smoke упал на `grep -q '"model_version":"churn-v'` ([попытка 3](https://github.com/overcast17/churn-service/actions/runs/37216584401/attempts/3)) → проверка осталась с семинара, у меня версия `bank-churn/3`, и файла `good.json` нет. → Проверка `model_source` = `registry:`, `valid.json`.
-4. Smoke упал с `exit code 4`, пустой `risky_pred.json` ([run 37218048014](https://github.com/overcast17/churn-service/actions/runs/37218048014)) → сразу после выката Traefik ещё отправил запрос на убитый под (502), `curl --fail` без повторов молча отдал пустой ответ. То же было руками в 2.3: первый `curl` после `rollout status` — `Bad Gateway`. → `sleep 5` перед запросами.
+1. Smoke упал на `grep -q '"model_version":"churn-v'` ([попытка 3](https://github.com/overcast17/churn-service/actions/runs/37216584401/attempts/3)) → проверка осталась с семинара, у меня версия `bank-churn/3`, и файла `good.json` нет. → Проверка `model_source` = `registry:`, `valid.json`.
+2. Smoke упал с `exit code 4`, пустой `risky_pred.json` ([run 37218048014](https://github.com/overcast17/churn-service/actions/runs/37218048014)) → сразу после выката Traefik ещё отправил запрос на убитый под (502), `curl --fail` без повторов молча отдал пустой ответ. То же было руками в 2.3: первый `curl` после `rollout status` — `Bad Gateway`. → `sleep 5` перед запросами.
 
 ### HPA
 
-1. `helm ... -f platform/metrics-server-values.yaml` → `cannot find the file`, хотя файл был. В имени из PDF стояли типографские дефисы `‐` вместо `-`. → Переименовал.
-2. `helm --wait` → `context deadline exceeded`, под `ContainerCreating`. Образ с `registry.k8s.io` качался больше 5 минут. → Дождался, под поднялся сам.
-
-Общая проблема — медленные `dl.k8s.io` и `registry.k8s.io`, и то, что Windows и Git Bash по-своему обходятся с путями и именами. Самые неприятные ошибки не падали сразу: `train.py` и helm молча ждали, curl с `-s` падал без текста.
+Общая проблема — медленные `dl.k8s.io` и `registry.k8s.io`, и то, что Windows и Git Bash по-своему обходятся с путями и именами.
