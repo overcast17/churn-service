@@ -106,10 +106,11 @@ jobs:
           U="http://$KIND_CLUSTER-control-plane:30080"; H="Host: churn.localhost"
 
           curl --fail -s --retry 5 --retry-all-errors -H "$H" $U/health | tee health.json; echo
-          grep -q '"model_version":"churn-v' health.json
+          # модель пришла из реестра
+          jq -e '.model_source | startswith("registry:")' health.json
 
           curl --fail -s -X POST -H "$H" $U/v1/predict \
-            -H "Content-Type: application/json" -d @good.json | tee pred.json; echo
+            -H "Content-Type: application/json" -d @valid.json | tee pred.json; echo
 
           # ответ осмысленный на своих признаках: рискованный клиент уходит, спокойный нет, и риск выше
           jq '.age=60 | .geography="Germany" | .is_active_member=0' valid.json > risky.json
