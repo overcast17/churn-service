@@ -16,7 +16,6 @@
 | 2.7 Модели нет в реестре | [красный](https://github.com/overcast17/churn-service/actions/runs/37225638275) → [зелёный](https://github.com/overcast17/churn-service/actions/runs/37226383851) |
 | 2.7 Runner не видит кластер | [красный](https://github.com/overcast17/churn-service/actions/runs/37227128667) → [зелёный](https://github.com/overcast17/churn-service/actions/runs/37227573849) |
 | 2.7 Ingress мимо | [красный](https://github.com/overcast17/churn-service/actions/runs/37227956265) → [зелёный](https://github.com/overcast17/churn-service/actions/runs/37228296807) |
-| ⭐ Деплой по кнопке | [push: build прошёл, deploy ждёт](https://github.com/overcast17/churn-service/actions/runs/37217790309) → [после кнопки](https://github.com/overcast17/churn-service/actions/runs/37218649782) |
 
 ### Задание 2.1
 
