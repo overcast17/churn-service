@@ -1,3 +1,6 @@
+Задание 2.1
+
+
 $ kubectl get pods,ingress -A
 NAMESPACE            NAME                                              READY   STATUS    RESTARTS   AGE
 kube-system          pod/coredns-559f6c778d-7tg4m                      1/1     Running   0          25m
@@ -19,6 +22,7 @@ mlops       ingress.networking.k8s.io/mlflow          traefik   mlflow.localhost
 
 
 
+Задание 2.2
 
 
 ![alt text](../images/mlflow_registry.png)
@@ -38,6 +42,9 @@ mlops       ingress.networking.k8s.io/mlflow          traefik   mlflow.localhost
 {"run_id": "9c7ce7add5bd4f909fa469f0a040b84e", "version": "3", "C": 1.0, "pr_auc": 0.4865, "data_md5": "e37acb17", "champion_before": "1", "champion_pr_auc_before": 0.4701, "min_gain": 0.01, "promoted": true}
 
 
+Задание 2.3
+
+
 $ curl -s http://churn.localhost/health
 {"status":"ok","model_version":"bank-churn/3","model_source":"registry: bank-churn@champion","log_level":"INFO"}(churn-service) 
 
@@ -47,5 +54,8 @@ $ curl http://churn.localhost/health
 
 
 16 секунд прошло
+
+
+Задание 2.4
 
 
