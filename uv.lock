@@ -250,7 +250,7 @@ dev = [
 requires-dist = [
     { name = "fastapi" },
     { name = "joblib" },
-    { name = "mlflow-skinny", specifier = ">=3.16,<4" },
+    { name = "mlflow-skinny", specifier = "==3.16.1" },
     { name = "pandas" },
     { name = "psycopg", extras = ["binary"] },
     { name = "pydantic" },
