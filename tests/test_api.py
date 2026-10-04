@@ -6,7 +6,7 @@ def test_health(client):
     assert r.status_code == 200
     body = r.json()
     assert "model_version" in body
-    assert body["model_path"] == settings.model_path
+    assert body["model_source"] == f"file: {settings.model_path}"
     assert body["log_level"] == settings.log_level
 
 

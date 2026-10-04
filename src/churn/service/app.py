@@ -4,11 +4,13 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 import joblib
+import mlflow
 import pandas as pd
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from mlflow import MlflowClient
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
@@ -52,13 +54,29 @@ class BatchPrediction(BaseModel):
     request_id: str
     latency_ms: float
 
-## Загрузка модели 
+## Загрузка модели
+def load_from_registry(name: str, alias: str):
+    # алиас -> номер версии один раз, чтобы модель и metadata.json были из одной версии
+    mv = MlflowClient().get_model_version_by_alias(name, alias)
+    pipeline = mlflow.sklearn.load_model(f"models:/{name}/{mv.version}")
+    meta = mlflow.artifacts.load_dict(f"runs:/{mv.run_id}/metadata.json")
+    return pipeline, meta, f"{name}/{mv.version}"
+
+
+def load_from_file(path: str):
+    bundle = joblib.load(path)
+    return bundle["pipeline"], bundle["metadata"], bundle["metadata"]["model_version"]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    bundle = joblib.load(settings.model_path)
-    app.state.pipeline = bundle["pipeline"]
-    app.state.meta = bundle["metadata"]
-    app.state.version = bundle["metadata"]["model_version"]
+    if settings.model_name:
+        app.state.pipeline, app.state.meta, app.state.version = load_from_registry(
+            settings.model_name, settings.model_alias)
+        app.state.source = f"registry: {settings.model_name}@{settings.model_alias}"
+    else:
+        app.state.pipeline, app.state.meta, app.state.version = load_from_file(settings.model_path)
+        app.state.source = f"file: {settings.model_path}"
 
     db.init()
     yield
@@ -92,7 +110,7 @@ def health():
     return {
         "status": "ok",
         "model_version": getattr(app.state, "version", "unknown"),
-        "model_path": settings.model_path,
+        "model_source": getattr(app.state, "source", "unknown"),
         "log_level": settings.log_level,
     }
 
