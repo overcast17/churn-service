@@ -107,3 +107,4 @@ compose.yaml       сервис + Postgres с healthcheck
 
 - [Домашнее задание 1 — от артефакта до кластера](reports/REPORT_1.md)
 - [Домашнее задание 2 — CI/CD пайплайн](reports/REPORT_2.md)
+- [Домашнее задание 3 — модель из реестра в своём кластере](reports/REPORT_3.md)
