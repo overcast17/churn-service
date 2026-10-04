@@ -79,3 +79,6 @@ Collecting                                              |1.00 [00:00,  312entry/
 Pushing
 Everything is up to date.
 (churn-service) 
+
+
+![alt text](../images/mlflow_different_md5.png)
