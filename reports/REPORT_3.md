@@ -58,4 +58,13 @@ $ curl http://churn.localhost/health
 
 Задание 2.4
 
+Ссылка на зеленый прогон:
+https://github.com/overcast17/churn-service/actions/runs/37218649782/job/111484468363
 
+
+Скрин Runners:
+![alt text](../images/runners.png)
+
+
+Скрин из deploy, где видно runner: 
+![alt text](../images/deploy_runner.png)
