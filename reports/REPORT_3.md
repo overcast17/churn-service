@@ -97,6 +97,8 @@ A       data\Customer-Churn-Records.csv
 ![alt text](../images/get_hpa.png)
 
 
+Задание 2.7 
+
 
 
 
