@@ -68,3 +68,14 @@ https://github.com/overcast17/churn-service/actions/runs/37218649782/job/1114844
 
 Скрин из deploy, где видно runner: 
 ![alt text](../images/deploy_runner.png)
+
+
+Задание 2.5 
+
+
+Артемий@Artemiy MINGW64 /g/Postupashki_MLPRO_2026/churn-service (mlops)
+$ dvc push
+Collecting                                              |1.00 [00:00,  312entry/s]
+Pushing
+Everything is up to date.
+(churn-service) 
